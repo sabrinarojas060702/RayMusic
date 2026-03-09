@@ -1,20 +1,21 @@
 <?php
 /**
  * 📥 BACKEND DE DESCARGA CON PROGRESO
- * Optimizado para Render con carpeta local ./temp/
+ * Optimizado para Render con carpeta del sistema /tmp
  */
 
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
-set_time_limit(300);
+set_time_limit(0); // Sin límite de tiempo
+ignore_user_abort(true); // Continuar aunque el usuario cierre la conexión
 
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST');
 header('Access-Control-Allow-Headers: Content-Type');
 
-// Crear carpeta temp si no existe
-$tempDir = __DIR__ . '/temp';
+// Usar carpeta del sistema /tmp (garantizada en Render/Linux)
+$tempDir = '/tmp';
 if (!file_exists($tempDir)) {
     mkdir($tempDir, 0755, true);
 }
@@ -80,8 +81,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'getfile') {
         fclose($handle);
     }
     
-    // Limpiar archivo después de enviarlo
+    // Limpiar archivos después de enviarlo
     @unlink($outputFile);
+    
+    // Limpiar también el archivo de progreso si existe
+    $downloadId = $_GET['downloadId'] ?? null;
+    if ($downloadId) {
+        $progressFile = $tempDir . '/download_progress_' . $downloadId . '.json';
+        @unlink($progressFile);
+    }
     
     exit;
 }
