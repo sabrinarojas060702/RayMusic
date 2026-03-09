@@ -15,7 +15,7 @@ RUN wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /us
 RUN a2enmod rewrite
 
 # Copiamos tus archivos al servidor
-COPY . /var/www/html/
+COPY ./papi/ /var/www/html/
 
 # Damos permisos a la carpeta
 RUN chown -R www-data:www-data /var/www/html/
