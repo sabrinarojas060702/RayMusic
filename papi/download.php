@@ -30,11 +30,23 @@ if (isset($_GET['action']) && $_GET['action'] === 'progress') {
         exit;
     }
     
-    $progressFile = $tempDir . '/download_progress_' . $downloadId . '.json';
+    // Define la ruta absoluta sin puntos
+    $tmpPath = '/tmp/';
+    $progressFile = $tmpPath . 'progress_' . $downloadId . '.txt';
     
     if (file_exists($progressFile)) {
-        $progress = json_decode(file_get_contents($progressFile), true);
-        echo json_encode($progress);
+        clearstatcache(true, $progressFile);
+        $content = @file_get_contents($progressFile);
+        if ($content !== false) {
+            $progress = json_decode($content, true);
+            if ($progress) {
+                echo json_encode($progress);
+            } else {
+                echo json_encode(['percent' => 0, 'status' => 'starting']);
+            }
+        } else {
+            echo json_encode(['percent' => 0, 'status' => 'starting']);
+        }
     } else {
         echo json_encode(['percent' => 0, 'status' => 'starting']);
     }
@@ -49,7 +61,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'getfile') {
         die('Error: No video ID');
     }
     
-    $outputFile = $tempDir . '/' . $videoId . '.m4a';
+    // Define la ruta absoluta sin puntos
+    $tmpPath = '/tmp/';
+    $outputFile = $tmpPath . $videoId . '.m4a';
     
     if (!file_exists($outputFile)) {
         http_response_code(404);
@@ -61,6 +75,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'getfile') {
         ob_end_clean();
     }
     
+    clearstatcache(true, $outputFile);
     $fileSize = filesize($outputFile);
     
     // Enviar headers
@@ -87,7 +102,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'getfile') {
     // Limpiar también el archivo de progreso si existe
     $downloadId = $_GET['downloadId'] ?? null;
     if ($downloadId) {
-        $progressFile = $tempDir . '/download_progress_' . $downloadId . '.json';
+        $progressFile = $tmpPath . 'progress_' . $downloadId . '.txt';
         @unlink($progressFile);
     }
     
@@ -104,9 +119,11 @@ $videoId = $_GET['videoId'];
 $downloadId = $_GET['downloadId'] ?? uniqid();
 $videoUrl = "https://www.youtube.com/watch?v=" . $videoId;
 
-// Archivos
-$progressFile = $tempDir . '/download_progress_' . $downloadId . '.json';
-$outputFile = $tempDir . '/' . $videoId . '.m4a';
+// Define la ruta absoluta sin puntos
+$tmpPath = '/tmp/';
+$progressFile = $tmpPath . 'progress_' . $downloadId . '.txt';
+$outputFile = $tmpPath . $videoId . '.m4a';
+$logFile = $tmpPath . 'ytdlp_' . $downloadId . '.log';
 
 // Función para actualizar progreso
 function updateProgress($file, $percent, $status, $downloaded = '0MB', $total = '0MB', $speed = '0KB/s') {
@@ -122,8 +139,7 @@ function updateProgress($file, $percent, $status, $downloaded = '0MB', $total = 
 // Inicializar progreso
 updateProgress($progressFile, 0, 'starting');
 
-// Comando yt-dlp optimizado para M4A
-$logFile = $tempDir . '/ytdlp_' . $downloadId . '.log';
+// Comando yt-dlp optimizado para M4A con progreso en tiempo real
 $cmd = 'yt-dlp -f "140/bestaudio[ext=m4a]" ' .
        '--newline ' .
        '--progress ' .
@@ -144,7 +160,7 @@ updateProgress($progressFile, 5, 'downloading', '0MB', 'Calculando...', 'Inician
 
 // Monitorear descarga en segundo plano
 $startTime = time();
-$maxWait = 180; // 3 minutos máximo
+$maxWait = 300; // 5 minutos máximo (aumentado para Render)
 
 while (true) {
     $elapsed = time() - $startTime;
@@ -160,48 +176,54 @@ while (true) {
     
     // Leer log para obtener progreso real
     if (file_exists($logFile)) {
-        $log = file_get_contents($logFile);
+        clearstatcache(true, $logFile);
+        $log = @file_get_contents($logFile);
         
-        // Buscar última línea de progreso
-        if (preg_match_all('/\[download\]\s+(\d+\.?\d*)%\s+of\s+([\d\.]+[KMG]?i?B)(?:\s+at\s+([\d\.]+[KMG]?i?B\/s))?/m', $log, $matches, PREG_SET_ORDER)) {
-            $lastMatch = end($matches);
-            $percent = floatval($lastMatch[1]);
-            $total = $lastMatch[2] ?? 'Calculando...';
-            $speed = $lastMatch[3] ?? 'Calculando...';
-            
-            $downloaded = round($percent, 1) . '%';
-            
-            updateProgress($progressFile, $percent, 'downloading', $downloaded, $total, $speed);
+        if ($log !== false) {
+            // Buscar última línea de progreso
+            if (preg_match_all('/\[download\]\s+(\d+\.?\d*)%\s+of\s+([\d\.]+[KMG]?i?B)(?:\s+at\s+([\d\.]+[KMG]?i?B\/s))?/m', $log, $matches, PREG_SET_ORDER)) {
+                $lastMatch = end($matches);
+                $percent = floatval($lastMatch[1]);
+                $total = $lastMatch[2] ?? 'Calculando...';
+                $speed = $lastMatch[3] ?? 'Calculando...';
+                
+                $downloaded = round($percent, 1) . '%';
+                
+                updateProgress($progressFile, $percent, 'downloading', $downloaded, $total, $speed);
+            }
         }
     }
     
     // Verificar si terminó
-    if (file_exists($outputFile) && filesize($outputFile) > 1000) {
-        // Verificar que el archivo no está creciendo (descarga completa)
-        clearstatcache();
-        $size1 = filesize($outputFile);
-        sleep(1);
-        clearstatcache();
-        $size2 = filesize($outputFile);
+    if (file_exists($outputFile)) {
+        clearstatcache(true, $outputFile);
+        $fileSize = @filesize($outputFile);
         
-        if ($size1 === $size2) {
-            // Descarga completa
-            $fileSize = filesize($outputFile);
-            $fileSizeMB = round($fileSize / 1024 / 1024, 2) . 'MB';
+        if ($fileSize && $fileSize > 1000) {
+            // Verificar que el archivo no está creciendo (descarga completa)
+            $size1 = $fileSize;
+            sleep(2);
+            clearstatcache(true, $outputFile);
+            $size2 = @filesize($outputFile);
             
-            updateProgress($progressFile, 100, 'complete', $fileSizeMB, $fileSizeMB, 'Completado');
-            
-            // Limpiar log
-            @unlink($logFile);
-            
-            // Retornar éxito
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'videoId' => $videoId,
-                'message' => 'Descarga completa'
-            ]);
-            exit;
+            if ($size1 === $size2) {
+                // Descarga completa
+                $fileSizeMB = round($fileSize / 1024 / 1024, 2) . 'MB';
+                
+                updateProgress($progressFile, 100, 'complete', $fileSizeMB, $fileSizeMB, 'Completado');
+                
+                // Limpiar log
+                @unlink($logFile);
+                
+                // Retornar éxito
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => true,
+                    'videoId' => $videoId,
+                    'message' => 'Descarga completa'
+                ]);
+                exit;
+            }
         }
     }
     
