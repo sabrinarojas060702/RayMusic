@@ -181,15 +181,18 @@ async function descargarCancion(videoId, title) {
         // Crear modal de progreso
         mostrarModalProgreso(videoId, title, downloadId, targetButton);
         
-        // Iniciar descarga en segundo plano (iframe oculto)
-        const downloadUrl = `download.php?videoId=${videoId}&downloadId=${downloadId}`;
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = downloadUrl;
-        document.body.appendChild(iframe);
+        // INICIAR descarga en el servidor (sin descargar aún)
+        fetch(`download.php?videoId=${videoId}&downloadId=${downloadId}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('✅ Descarga completada en servidor:', data);
+            })
+            .catch(error => {
+                console.error('❌ Error en descarga:', error);
+            });
         
         // Monitorear progreso
-        monitorearProgreso(downloadId, iframe);
+        monitorearProgreso(downloadId, videoId, targetButton);
         
         console.log('✅ Descarga iniciada con ID:', downloadId);
         
@@ -315,7 +318,7 @@ function mostrarModalProgreso(videoId, title, downloadId, targetButton) {
 // 📡 MONITOREAR PROGRESO
 // ============================================
 
-async function monitorearProgreso(downloadId, iframe) {
+async function monitorearProgreso(downloadId, videoId, targetButton) {
     const maxIntentos = 300; // 5 minutos máximo
     let intentos = 0;
     let ultimoPorcentaje = 0;
@@ -326,12 +329,7 @@ async function monitorearProgreso(downloadId, iframe) {
         
         if (intentos > maxIntentos) {
             clearInterval(interval);
-            // Asumir que completó si pasó mucho tiempo
-            mostrarExito(downloadId);
-            setTimeout(() => {
-                cerrarModalProgreso(downloadId);
-                if (iframe) iframe.remove();
-            }, 2500);
+            mostrarError(downloadId, 'Tiempo de espera agotado');
             return;
         }
         
@@ -348,38 +346,15 @@ async function monitorearProgreso(downloadId, iframe) {
             // Actualizar UI
             actualizarProgreso(downloadId, data);
             
-            // Detectar si el progreso se estancó (descarga completada)
+            // Detectar si el progreso se estancó
             if (data.percent === ultimoPorcentaje && data.percent > 0) {
                 sinCambios++;
-                
-                // Si no hay cambios por 8 segundos, asumir completado
-                if (sinCambios >= 8) {
-                    clearInterval(interval);
-                    
-                    // Forzar a 100%
-                    actualizarProgreso(downloadId, {
-                        percent: 100,
-                        status: 'complete',
-                        downloaded: 'Completado',
-                        total: 'Completado',
-                        speed: 'Completado'
-                    });
-                    
-                    setTimeout(() => {
-                        mostrarExito(downloadId);
-                        setTimeout(() => {
-                            cerrarModalProgreso(downloadId);
-                            if (iframe) iframe.remove();
-                        }, 2500);
-                    }, 300);
-                    return;
-                }
             } else {
                 sinCambios = 0;
                 ultimoPorcentaje = data.percent;
             }
             
-            // Si completó normalmente
+            // Si completó
             if (data.status === 'complete' || data.percent >= 100) {
                 clearInterval(interval);
                 
@@ -392,12 +367,25 @@ async function monitorearProgreso(downloadId, iframe) {
                     speed: 'Completado'
                 });
                 
+                // Mostrar éxito
                 setTimeout(() => {
                     mostrarExito(downloadId);
+                    
+                    // DESCARGAR el archivo al navegador
                     setTimeout(() => {
-                        cerrarModalProgreso(downloadId);
-                        if (iframe) iframe.remove();
-                    }, 2500);
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = `download.php?action=getfile&videoId=${videoId}`;
+                        downloadLink.download = videoId + '.m4a';
+                        downloadLink.style.display = 'none';
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click();
+                        
+                        // Limpiar después de 1 segundo
+                        setTimeout(() => {
+                            downloadLink.remove();
+                            cerrarModalProgreso(downloadId, targetButton);
+                        }, 1000);
+                    }, 1500);
                 }, 300);
             }
             
