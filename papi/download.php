@@ -1,7 +1,6 @@
 <?php
 /**
- * 📥 BACKEND DE DESCARGA CON PROGRESO
- * Sistema de descarga con reporte de progreso en tiempo real
+ * 📥 BACKEND DE DESCARGA SIMPLE CON PROGRESO
  */
 
 error_reporting(E_ALL);

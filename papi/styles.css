@@ -7,15 +7,26 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     background-image: url(imagenes/Hola\ Severo\ Rojas.png);
-    background-size: 100%;
-    background-position: center;
+    background-size: cover;
+    background-position: center center;
     background-repeat: no-repeat;
     min-height: 100vh;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     position: relative;
+}
+
+/* Asegurar que el fondo cubra todo en móviles */
+@media (max-width: 768px) {
+    body {
+        background-attachment: scroll;
+        background-size: cover;
+        min-height: 100vh;
+    }
 }
 .titulopagins{
      background: linear-gradient(135deg, #adb5f7, #ff1fda);
@@ -239,10 +250,15 @@ body {
 
 
 @media (max-width: 1024px) {
+    .titulopagins{
+       align-items: center;
+       justify-content: center;
+    }
     .container {
         grid-template-columns: 1fr;
         gap: 40px;
         text-align: center;
+        padding: 40px 20px;
     }
     
     .content {
@@ -260,9 +276,21 @@ body {
     .search-container {
         margin: 0 auto;
     }
+    
+    .foto {
+        margin: 0 auto;
+    }
 }
 
 @media (max-width: 768px) {
+    body {
+        background-attachment: scroll;
+        background-size: cover;
+        min-height: 100vh;
+        align-items: flex-start;
+        padding-top: 20px;
+    }
+    
     .title {
         font-size: 2.5rem;
     }
@@ -273,6 +301,12 @@ body {
     
     .container {
         padding: 20px;
+        min-height: auto;
+    }
+    
+    .foto {
+        height: 300px;
+        width: 300px;
     }
 }
 
