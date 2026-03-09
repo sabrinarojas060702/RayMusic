@@ -23,6 +23,9 @@ if (!file_exists($tempDir)) {
 // Endpoint para obtener progreso
 if (isset($_GET['action']) && $_GET['action'] === 'progress') {
     header('Content-Type: application/json');
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+    header('Pragma: no-cache');
+    header('Expires: 0');
     
     $downloadId = $_GET['downloadId'] ?? null;
     if (!$downloadId) {
@@ -34,16 +37,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'progress') {
     $tmpPath = '/tmp/';
     $progressFile = $tmpPath . 'progress_' . $downloadId . '.txt';
     
+    // Limpiar caché de archivos
+    clearstatcache(true, $progressFile);
+    
     if (file_exists($progressFile)) {
-        clearstatcache(true, $progressFile);
         $content = @file_get_contents($progressFile);
-        if ($content !== false) {
-            $progress = json_decode($content, true);
-            if ($progress) {
-                echo json_encode($progress);
-            } else {
-                echo json_encode(['percent' => 0, 'status' => 'starting']);
-            }
+        if ($content !== false && !empty($content)) {
+            echo $content; // Ya está en formato JSON
         } else {
             echo json_encode(['percent' => 0, 'status' => 'starting']);
         }
@@ -125,15 +125,24 @@ $progressFile = $tmpPath . 'progress_' . $downloadId . '.txt';
 $outputFile = $tmpPath . $videoId . '.m4a';
 $logFile = $tmpPath . 'ytdlp_' . $downloadId . '.log';
 
-// Función para actualizar progreso
+// Función para actualizar progreso - FORZAR escritura inmediata
 function updateProgress($file, $percent, $status, $downloaded = '0MB', $total = '0MB', $speed = '0KB/s') {
-    @file_put_contents($file, json_encode([
+    $data = json_encode([
         'percent' => $percent,
         'status' => $status,
         'downloaded' => $downloaded,
         'total' => $total,
         'speed' => $speed
-    ]));
+    ]);
+    
+    // Escribir con LOCK_EX para evitar lecturas parciales
+    @file_put_contents($file, $data, LOCK_EX);
+    
+    // Forzar flush al disco
+    if (function_exists('opcache_invalidate')) {
+        @opcache_invalidate($file, true);
+    }
+    clearstatcache(true, $file);
 }
 
 // Inicializar progreso
@@ -160,7 +169,8 @@ updateProgress($progressFile, 5, 'downloading', '0MB', 'Calculando...', 'Inician
 
 // Monitorear descarga en segundo plano
 $startTime = time();
-$maxWait = 300; // 5 minutos máximo (aumentado para Render)
+$maxWait = 300; // 5 minutos máximo
+$lastPercent = 0;
 
 while (true) {
     $elapsed = time() - $startTime;
@@ -179,7 +189,7 @@ while (true) {
         clearstatcache(true, $logFile);
         $log = @file_get_contents($logFile);
         
-        if ($log !== false) {
+        if ($log !== false && !empty($log)) {
             // Buscar última línea de progreso
             if (preg_match_all('/\[download\]\s+(\d+\.?\d*)%\s+of\s+([\d\.]+[KMG]?i?B)(?:\s+at\s+([\d\.]+[KMG]?i?B\/s))?/m', $log, $matches, PREG_SET_ORDER)) {
                 $lastMatch = end($matches);
@@ -187,9 +197,12 @@ while (true) {
                 $total = $lastMatch[2] ?? 'Calculando...';
                 $speed = $lastMatch[3] ?? 'Calculando...';
                 
-                $downloaded = round($percent, 1) . '%';
-                
-                updateProgress($progressFile, $percent, 'downloading', $downloaded, $total, $speed);
+                // Solo actualizar si cambió el porcentaje
+                if (abs($percent - $lastPercent) >= 0.5) {
+                    $downloaded = round($percent, 1) . '%';
+                    updateProgress($progressFile, $percent, 'downloading', $downloaded, $total, $speed);
+                    $lastPercent = $percent;
+                }
             }
         }
     }
@@ -202,7 +215,7 @@ while (true) {
         if ($fileSize && $fileSize > 1000) {
             // Verificar que el archivo no está creciendo (descarga completa)
             $size1 = $fileSize;
-            sleep(2);
+            sleep(1);
             clearstatcache(true, $outputFile);
             $size2 = @filesize($outputFile);
             
@@ -227,8 +240,8 @@ while (true) {
         }
     }
     
-    // Esperar antes de verificar de nuevo
-    usleep(500000); // 0.5 segundos
+    // Esperar antes de verificar de nuevo - reducido para más actualizaciones
+    usleep(300000); // 0.3 segundos
 }
 
 exit;
