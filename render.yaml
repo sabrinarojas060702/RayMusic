@@ -1,0 +1,26 @@
+# Configuración de Render para RayMusic con Python
+services:
+  - type: web
+    name: raymusic
+    env: docker
+    plan: free
+    region: oregon
+    
+    # Variables de entorno
+    envVars:
+      - key: YOUTUBE_API_KEY
+        sync: false
+        # ⚠️ IMPORTANTE: Configura esto en el panel de Render
+        # Settings > Environment > Add Variable
+      
+      - key: PORT
+        value: 8080
+    
+    # Auto-deploy desde Git
+    autoDeploy: true
+    
+    # Configuración de recursos
+    disk:
+      name: raymusic-data
+      mountPath: /tmp
+      sizeGB: 1

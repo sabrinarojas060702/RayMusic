@@ -1,0 +1,529 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-image: url(imagenes/Hola\ Severo\ Rojas.png);
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-x: hidden;
+    overflow-y: auto;
+    position: relative;
+}
+
+/* Asegurar que el fondo cubra todo en móviles */
+@media (max-width: 768px) {
+    body {
+        background-attachment: scroll;
+        background-size: cover;
+        min-height: 100vh;
+    }
+}
+.titulopagins{
+     background: linear-gradient(135deg, #adb5f7, #ff1fda);
+    -webkit-background-clip: text; /* Recorta el fondo a la forma de las letras */
+    -webkit-text-fill-color: transparent; /* Hace el texto transparente para que se vea el fondo */
+    background-clip: text; /* Estándar moderno */
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.titulopagins svg{
+   height: 30px;
+   width: 30px;
+}
+.container {
+    width: 100%;
+    max-width: 1400px;
+    padding: 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 100px;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+.content {
+    padding-left: 40px;
+}
+.foto{
+    height: 440px;
+    width: 450px;
+  background-image: url(imagenes/musica.png);
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+.title {
+    font-size: 4rem;
+    font-weight: 800;
+    color: #1a1a1a;
+    margin-bottom: 20px;
+    line-height: 1.2;
+}
+
+.name-blue {
+    background: linear-gradient(135deg, #929ef7, #6952cc);
+    -webkit-background-clip: text; /* Recorta el fondo a la forma de las letras */
+    -webkit-text-fill-color: transparent; /* Hace el texto transparente para que se vea el fondo */
+    background-clip: text; /* Estándar moderno */
+}
+.name-purple {
+     background: linear-gradient(135deg, #8770ee, #BD77FA);
+    -webkit-background-clip: text; /* Recorta el fondo a la forma de las letras */
+    -webkit-text-fill-color: transparent; /* Hace el texto transparente para que se vea el fondo */
+    background-clip: text; /* Estándar moderno */
+}
+
+.subtitle {
+    font-size: 1.5rem;
+    color: #4a4a4a;
+    margin-bottom: 40px;
+    font-weight: 400;
+}
+
+.search-container {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 18px 60px 18px 24px;
+    font-size: 1rem;
+    border: 3px solid transparent;
+    border-radius: 50px;
+    outline: none;
+    background: white;
+    color: #333;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, #8C93F1, #d26cec) border-box;
+}
+
+.search-input:focus {
+    box-shadow: 0 8px 30px rgba(91, 159, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.search-input::placeholder {
+    color: #999;
+}
+
+.search-button {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 45px;
+    height: 45px;
+    border: none;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #9091F1, #b700ff96);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(91, 159, 255, 0.4);
+}
+
+.search-button:hover {
+    transform: translateY(-50%) scale(1.05);
+    box-shadow: 0 6px 20px rgba(91, 159, 255, 0.5);
+}
+
+.search-button:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.search-icon {
+    width: 22px;
+    height: 22px;
+    color: white;
+}
+
+.video-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+}
+
+.video-placeholder {
+    width: 100%;
+    max-width: 450px;
+    aspect-ratio: 1;
+    background-image: url(imagenes/musica.png);
+    background-size: cover;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+#videoPlayer {
+    width: 100%;
+    height: 100%;
+    border-radius: 20px;
+}
+
+#videoPlayer iframe {
+    width: 100%;
+    height: 100%;
+}
+
+/* Botón de descarga gigante */
+.download-button {
+    width: 100%;
+    max-width: 450px;
+    padding: 25px 40px;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: white;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0;
+    transform: scale(0.9);
+}
+
+.download-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 15px 40px rgba(16, 185, 129, 0.6);
+    background: linear-gradient(135deg, #059669, #047857);
+}
+
+.download-button:active {
+    transform: scale(0.98);
+}
+
+.download-icon {
+    width: 32px;
+    height: 32px;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@keyframes shine {
+    0% {
+        transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    }
+    100% {
+        transform: translateX(100%) translateY(100%) rotate(45deg);
+    }
+}
+
+
+
+
+@media (max-width: 1024px) {
+    .titulopagins{
+       align-items: center;
+       justify-content: center;
+    }
+    .container {
+        grid-template-columns: 1fr;
+        gap: 40px;
+        text-align: center;
+        padding: 40px 20px;
+    }
+    
+    .content {
+        padding-left: 0;
+    }
+    
+    .title {
+        font-size: 3rem;
+    }
+    
+    .subtitle {
+        font-size: 1.2rem;
+    }
+    
+    .search-container {
+        margin: 0 auto;
+    }
+    
+    .foto {
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        background-attachment: scroll;
+        background-size: cover;
+        min-height: 100vh;
+        align-items: flex-start;
+        padding-top: 20px;
+    }
+    
+    .title {
+        font-size: 2.5rem;
+    }
+    
+    .subtitle {
+        font-size: 1rem;
+    }
+    
+    .container {
+        padding: 20px;
+        min-height: auto;
+    }
+    
+    .foto {
+        height: 300px;
+        width: 300px;
+    }
+}
+
+/* Modal de resultados */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal.show {
+    opacity: 1;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    padding: 25px 30px;
+    border-bottom: 2px solid; /* Definimos el grosor y estilo */
+  border-image-source: linear-gradient(135deg, #8190ff80, #b950ff80);
+  border-image-slice: 1; /* Esto es vital para que el gradiente se vea */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.8rem;
+    background: linear-gradient(135deg, #818fff, #b950ff);
+    -webkit-background-clip: text; /* Recorta el fondo a la forma de las letras */
+    -webkit-text-fill-color: transparent; /* Hace el texto transparente para que se vea el fondo */
+    background-clip: text; /* Estándar moderno */
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 2.5rem;
+    background: linear-gradient(135deg, #929ef7, #6952cc);
+    -webkit-background-clip: text; /* Recorta el fondo a la forma de las letras */
+    -webkit-text-fill-color: transparent; /* Hace el texto transparente para que se vea el fondo */
+    background-clip: text; /* Estándar moderno */
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+    color: rgb(22, 170, 255);
+    transform: rotate(90deg);
+    background-color: #818181a9;
+}
+
+.modal-results {
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(80vh - 100px);
+}
+
+.video-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 15px;
+    border-radius: 15px;
+    background: #f8f9fa;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.video-card:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+}
+
+.video-card img {
+    width: 120px;
+    height: 90px;
+    border-radius: 10px;
+    object-fit: cover;
+}
+
+.video-info {
+    flex: 1;
+}
+
+.video-info h3 {
+    font-size: 1rem;
+    margin: 0 0 5px 0;
+    color: #333;
+}
+
+.video-info p {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 0;
+}
+
+.download-btn {
+    padding: 12px 25px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.download-btn:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: scale(1.05);
+}
+
+.download-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.download-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+@media (max-width: 768px) {
+    .video-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .video-card img {
+        width: 100%;
+        height: auto;
+    }
+    
+    .download-btn {
+        width: 100%;
+    }
+}
+
+/* Animaciones para notificaciones */
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}

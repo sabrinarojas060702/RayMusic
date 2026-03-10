@@ -1,0 +1,53 @@
+[youtube] Extracting URL: https://www.youtube.com/watch?v=2EDCpDXMowc
+[youtube] 2EDCpDXMowc: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno is enabled by default; to use another runtime add  --js-runtimes RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS runtime has been deprecated, and some formats may be missing. See  https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] 2EDCpDXMowc: Downloading android vr player API JSON
+[info] 2EDCpDXMowc: Downloading 1 format(s): 140
+[download] Destination: C:\xampp\htdocs\papi\temp\2EDCpDXMowc.m4a
+[download]   0.0% of    2.82MiB at    260.08B/s ETA 03:09:33
+[download]   0.1% of    2.82MiB at    389.86B/s ETA 02:06:25
+[download]   0.1% of    2.82MiB at    649.37B/s ETA 01:15:52
+[download]   0.2% of    2.82MiB at    1.14KiB/s ETA 42:08
+[download]   0.3% of    2.82MiB at    2.15KiB/s ETA 22:17
+[download]   0.6% of    2.82MiB at    4.15KiB/s ETA 11:32
+[download]   1.1% of    2.82MiB at    6.95KiB/s ETA 06:51
+[download]   1.9% of    2.82MiB at   11.83KiB/s ETA 03:59
+[download]   3.5% of    2.82MiB at   17.27KiB/s ETA 02:41
+[download]   4.9% of    2.82MiB at   20.99KiB/s ETA 02:10
+[download]   6.5% of    2.82MiB at   23.85KiB/s ETA 01:53
+[download]   7.9% of    2.82MiB at   26.04KiB/s ETA 01:42
+[download]   9.5% of    2.82MiB at   27.86KiB/s ETA 01:33
+[download]  10.9% of    2.82MiB at   30.55KiB/s ETA 01:24
+[download]  13.8% of    2.82MiB at   28.45KiB/s ETA 01:27
+[download]  15.2% of    2.82MiB at   27.21KiB/s ETA 01:30
+[download]  15.9% of    2.82MiB at   27.79KiB/s ETA 01:27
+[download]  17.3% of    2.82MiB at   27.58KiB/s ETA 01:26
+[download]  18.1% of    2.82MiB at   28.34KiB/s ETA 01:23
+[download]  19.9% of    2.82MiB at   27.80KiB/s ETA 01:23
+[download]  20.8% of    2.82MiB at   27.48KiB/s ETA 01:23
+[download]  21.5% of    2.82MiB at   27.89KiB/s ETA 01:21
+[download]  23.0% of    2.82MiB at   27.42KiB/s ETA 01:21
+[download]  23.8% of    2.82MiB at   27.95KiB/s ETA 01:18
+[download]  25.3% of    2.82MiB at   27.43KiB/s ETA 01:18
+[download]  26.1% of    2.82MiB at   27.51KiB/s ETA 01:17
+[download]  27.1% of    2.82MiB at   28.20KiB/s ETA 01:14
+[download]  29.2% of    2.82MiB at   28.95KiB/s ETA 01:10
+[download]  30.7% of    2.82MiB at   29.41KiB/s ETA 01:08
+[download]  32.2% of    2.82MiB at   30.12KiB/s ETA 01:05
+[download]  34.3% of    2.82MiB at   31.68KiB/s ETA 00:59
+[download]  38.5% of    2.82MiB at   33.66KiB/s ETA 00:52
+[download]  40.9% of    2.82MiB at   34.65KiB/s ETA 00:49
+[download]  43.2% of    2.82MiB at   35.81KiB/s ETA 00:45
+[download]  46.2% of    2.82MiB at   37.30KiB/s ETA 00:41
+[download]  49.4% of    2.82MiB at   38.83KiB/s ETA 00:37
+[download]  52.7% of    2.82MiB at   40.59KiB/s ETA 00:33
+[download]  57.0% of    2.82MiB at   43.11KiB/s ETA 00:28
+[download]  63.4% of    2.82MiB at   46.25KiB/s ETA 00:22
+[download]  68.0% of    2.82MiB at   49.27KiB/s ETA 00:18
+[download]  77.2% of    2.82MiB at   53.80KiB/s ETA 00:12
+[download]  83.0% of    2.82MiB at   57.06KiB/s ETA 00:08
+[download]  93.3% of    2.82MiB at   61.43KiB/s ETA 00:03
+[download]  98.8% of    2.82MiB at   63.12KiB/s ETA 00:00
+[download] 100.0% of    2.82MiB at   63.44KiB/s ETA 00:00
+[download] 100% of    2.82MiB in 00:00:53 at 54.31KiB/s
+WARNING: 2EDCpDXMowc: writing DASH m4a. Only some players support this container. Install ffmpeg to fix this automatically
