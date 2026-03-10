@@ -1,36 +1,27 @@
-# Dockerfile para RayMusic en Render
-FROM php:8.1-apache
+FROM python:3.11-slim
 
-# Instalar dependencias del sistema
+# Instalamos dependencias del sistema
 RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalar yt-dlp
-RUN pip3 install --break-system-packages yt-dlp
+# Instalamos dependencias de Python
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Habilitar mod_rewrite de Apache
-RUN a2enmod rewrite headers
+# Crear directorio de trabajo
+WORKDIR /app
 
 # Copiar archivos de la aplicación
-COPY . /var/www/html/
+COPY . /app/
 
-# Configurar permisos
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html
+# Crear carpeta temporal
+RUN mkdir -p /tmp && chmod 777 /tmp
 
-# Configurar Apache para permitir .htaccess
-RUN echo '<Directory /var/www/html>\n\
-    Options Indexes FollowSymLinks\n\
-    AllowOverride All\n\
-    Require all granted\n\
-</Directory>' > /etc/apache2/conf-available/raymusic.conf \
-    && a2enconf raymusic
+# Dar permisos de ejecución al servidor
+RUN chmod +x download_server.py
 
-# Exponer puerto 80
-EXPOSE 80
+EXPOSE 8080
 
-# Comando de inicio
-CMD ["apache2-foreground"]
+# Iniciar servidor Python
+CMD ["python3", "download_server.py"]
