@@ -129,35 +129,41 @@ $cmd = 'yt-dlp -f "140/bestaudio[ext=m4a]" --newline -o ' .
        escapeshellarg($outputFile) . ' ' . 
        escapeshellarg($videoUrl) . ' 2>&1';
 
-// Ejecutar comando y capturar salida en tiempo real
-if ($isWindows) {
-    $process = popen($cmd, 'r');
-} else {
-    $process = popen($cmd, 'r');
-}
+// Usar proc_open para mejor control
+$descriptorspec = [
+    0 => ['pipe', 'r'],  // stdin
+    1 => ['pipe', 'w'],  // stdout
+    2 => ['pipe', 'w']   // stderr
+];
 
-if (!$process) {
+$process = proc_open($cmd, $descriptorspec, $pipes);
+
+if (!is_resource($process)) {
     updateProgress($progressFile, 0, 'error', '0MB', '0MB', 'Error al iniciar');
     http_response_code(500);
     echo json_encode(['error' => 'No se pudo iniciar la descarga']);
     exit;
 }
 
+// Cerrar stdin
+fclose($pipes[0]);
+
+// Hacer stdout no bloqueante
+stream_set_blocking($pipes[1], false);
+
 $lastPercent = 5;
 $startTime = time();
 $maxWait = 300;
+$buffer = '';
 
-// Leer salida línea por línea
-while (!feof($process)) {
-    $line = fgets($process);
-    
-    if ($line === false) {
-        break;
-    }
-    
+// Leer salida en tiempo real
+while (true) {
     // Timeout
     if ((time() - $startTime) > $maxWait) {
-        pclose($process);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        proc_terminate($process);
+        proc_close($process);
         updateProgress($progressFile, 0, 'error', '0MB', '0MB', 'Timeout');
         @unlink($progressFile);
         @unlink($outputFile);
@@ -166,20 +172,44 @@ while (!feof($process)) {
         exit;
     }
     
-    // Buscar líneas de progreso
-    if (preg_match('/\[download\]\s+(\d+\.?\d*)%\s+of\s+([\d\.]+[KMG]?i?B)(?:\s+at\s+([\d\.]+[KMG]?i?B\/s))?/', $line, $matches)) {
-        $percent = floatval($matches[1]);
-        $total = $matches[2] ?? 'Calculando...';
-        $speed = $matches[3] ?? 'Calculando...';
+    // Leer datos disponibles
+    $data = fread($pipes[1], 8192);
+    
+    if ($data !== false && $data !== '') {
+        $buffer .= $data;
         
-        if (abs($percent - $lastPercent) >= 1) {
-            updateProgress($progressFile, $percent, 'downloading', round($percent, 1) . '%', $total, $speed);
-            $lastPercent = $percent;
+        // Procesar líneas completas
+        while (($pos = strpos($buffer, "\n")) !== false) {
+            $line = substr($buffer, 0, $pos);
+            $buffer = substr($buffer, $pos + 1);
+            
+            // Buscar progreso
+            if (preg_match('/\[download\]\s+(\d+\.?\d*)%\s+of\s+([\d\.]+[KMG]?i?B)(?:\s+at\s+([\d\.]+[KMG]?i?B\/s))?/', $line, $matches)) {
+                $percent = floatval($matches[1]);
+                $total = $matches[2] ?? 'Calculando...';
+                $speed = $matches[3] ?? 'Calculando...';
+                
+                if (abs($percent - $lastPercent) >= 1) {
+                    updateProgress($progressFile, $percent, 'downloading', round($percent, 1) . '%', $total, $speed);
+                    $lastPercent = $percent;
+                }
+            }
         }
     }
+    
+    // Verificar si el proceso terminó
+    $status = proc_get_status($process);
+    if (!$status['running']) {
+        break;
+    }
+    
+    usleep(100000); // 0.1 segundos
 }
 
-pclose($process);
+// Cerrar pipes
+fclose($pipes[1]);
+fclose($pipes[2]);
+proc_close($process);
 
 // Verificar si el archivo existe y está completo
 if (file_exists($outputFile)) {
