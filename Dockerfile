@@ -1,31 +1,36 @@
-FROM python:3.11-slim
+# Dockerfile para RayMusic en Render
+FROM php:8.1-apache
 
-# Instalamos dependencias del sistema
+# Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
     ffmpeg \
-    nodejs \
-    npm \
     && rm -rf /var/lib/apt/lists/*
 
-# Crear directorio de trabajo
-WORKDIR /app
+# Instalar yt-dlp
+RUN pip3 install --break-system-packages yt-dlp
 
-# Copiar requirements.txt primero (para cache de Docker)
-COPY requirements.txt .
+# Habilitar mod_rewrite de Apache
+RUN a2enmod rewrite headers
 
-# Instalar dependencias de Python
-RUN pip3 install --no-cache-dir -r requirements.txt
+# Copiar archivos de la aplicación
+COPY . /var/www/html/
 
-# Copiar todos los archivos de la aplicación
-COPY . /app/
+# Configurar permisos
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html
 
-# Crear carpeta temporal con permisos
-RUN mkdir -p /tmp && chmod 777 /tmp
+# Configurar Apache para permitir .htaccess
+RUN echo '<Directory /var/www/html>\n\
+    Options Indexes FollowSymLinks\n\
+    AllowOverride All\n\
+    Require all granted\n\
+</Directory>' > /etc/apache2/conf-available/raymusic.conf \
+    && a2enconf raymusic
 
-# Dar permisos de ejecución al servidor
-RUN chmod +x download_server.py
+# Exponer puerto 80
+EXPOSE 80
 
-EXPOSE 8080
-
-# Iniciar servidor Python
-CMD ["python3", "download_server.py"]
+# Comando de inicio
+CMD ["apache2-foreground"]

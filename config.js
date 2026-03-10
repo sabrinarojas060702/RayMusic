@@ -7,7 +7,7 @@ const CONFIG = {
     BACKEND_URL: 'download.php',
     
     // Configuración de búsqueda
-    MAX_RESULTS: 5,
+    MAX_RESULTS: 10,
     VIDEO_CATEGORY: '10' // Categoría de música en YouTube
 };
 

@@ -1,10 +1,11 @@
-# Configuración de Render para RayMusic con Python
+# Configuración completa de Render para RayMusic
 services:
   - type: web
     name: raymusic
     env: docker
     plan: free
     region: oregon
+    healthCheckPath: /health_check.php
     
     # Variables de entorno
     envVars:
@@ -12,12 +13,24 @@ services:
         sync: false
         # ⚠️ IMPORTANTE: Configura esto en el panel de Render
         # Settings > Environment > Add Variable
-      
-      - key: PORT
-        value: 8080
+        
+      - key: PHP_MEMORY_LIMIT
+        value: 256M
+        
+      - key: MAX_EXECUTION_TIME
+        value: 300
+        
+      - key: UPLOAD_MAX_FILESIZE
+        value: 50M
+        
+      - key: POST_MAX_SIZE
+        value: 50M
     
     # Auto-deploy desde Git
     autoDeploy: true
+    
+    # Configuración de build
+    buildCommand: chmod +x render-build.sh && ./render-build.sh
     
     # Configuración de recursos
     disk:

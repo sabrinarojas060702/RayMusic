@@ -1,4 +1,4 @@
-// 🎵 APLICACIÓN PRINCIPAL - Sistema completo con API + PHP Backend
+// 🎵 APLICACIÓN PRINCIPAL - Búsqueda en YouTube + Redirección a Y2Mate
 
 // Elementos del DOM
 const searchInput = document.getElementById('searchInput');
@@ -155,413 +155,80 @@ function mostrarResultados(videos) {
 }
 
 // ============================================
-// 📥 DESCARGA CON PROGRESO EN TIEMPO REAL
+// 📥 REDIRIGIR A Y2MATE PARA DESCARGA
 // ============================================
 
-async function descargarCancion(videoId, title) {
-    try {
-        console.log('📥 Iniciando descarga:', videoId);
-        
-        // Generar ID único para esta descarga
-        const downloadId = 'dl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        
-        // Encontrar el botón específico
-        const buttons = document.querySelectorAll('.download-btn');
-        let targetButton = null;
-        buttons.forEach(btn => {
-            if (btn.onclick && btn.onclick.toString().includes(videoId)) {
-                targetButton = btn;
-            }
-        });
-        
-        if (targetButton) {
-            targetButton.disabled = true;
-        }
-        
-        // Crear modal de progreso
-        mostrarModalProgreso(videoId, title, downloadId, targetButton);
-        
-        // INICIAR descarga en el servidor (sin descargar aún)
-        fetch(`download.php?videoId=${videoId}&downloadId=${downloadId}`)
-            .then(response => response.json())
-            .then(data => {
-                console.log('✅ Descarga completada en servidor:', data);
-            })
-            .catch(error => {
-                console.error('❌ Error en descarga:', error);
-            });
-        
-        // Monitorear progreso
-        monitorearProgreso(downloadId, videoId, targetButton);
-        
-        console.log('✅ Descarga iniciada con ID:', downloadId);
-        
-    } catch (error) {
-        console.error('❌ Error en descarga:', error);
-        alert('❌ Error al descargar: ' + error.message);
-    }
-}
-
-// ============================================
-// 📊 MODAL DE PROGRESO
-// ============================================
-
-function mostrarModalProgreso(videoId, title, downloadId, targetButton) {
-    // Crear overlay
-    const progressOverlay = document.createElement('div');
-    progressOverlay.id = 'progressOverlay_' + downloadId;
-    progressOverlay.style.cssText = `
+// Función para mostrar notificaciones
+function mostrarNotificacion(titulo, mensaje, tipo = 'success') {
+    // Crear notificación
+    const notificacion = document.createElement('div');
+    notificacion.style.cssText = `
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.85);
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        animation: fadeIn 0.3s ease;
+        top: 20px;
+        right: 20px;
+        background: ${tipo === 'success' ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #f59e0b, #d97706)'};
+        color: white;
+        padding: 20px 25px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        z-index: 10001;
+        min-width: 300px;
+        max-width: 400px;
+        animation: slideInRight 0.4s ease, fadeOut 0.4s ease 3.6s;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     `;
     
-    // Crear contenedor de progreso
-    const progressContainer = document.createElement('div');
-    progressContainer.style.cssText = `
-        background: white;
-        border-radius: 25px;
-        padding: 35px 40px;
-        width: 90%;
-        max-width: 480px;
-        max-height: 85vh;
-        overflow-y: auto;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-        animation: slideUp 0.4s ease;
-    `;
-    
-    progressContainer.innerHTML = `
-        <div style="text-align: center;">
-            <div style="margin-bottom: 15px;">
-                <svg style="width: 60px; height: 60px; margin: 0 auto;" viewBox="0 0 24 24" fill="none" stroke="url(#gradient)" stroke-width="2">
-                    <defs>
-                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#8C93F1;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#d26cec;stop-opacity:1" />
-                        </linearGradient>
-                    </defs>
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
+    notificacion.innerHTML = `
+        <div style="display: flex; align-items: start; gap: 12px;">
+            <div style="font-size: 24px; line-height: 1;">${tipo === 'success' ? '✅' : '⚠️'}</div>
+            <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 1rem; margin-bottom: 5px;">${titulo}</div>
+                <div style="font-size: 0.85rem; opacity: 0.95; line-height: 1.4;">${mensaje}</div>
             </div>
-            
-            <h2 style="margin: 0 0 8px 0; font-size: 1.4rem; color: #333;">Descargando</h2>
-            <p style="margin: 0 0 20px 0; color: #666; font-size: 0.85rem; max-height: 40px; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">${title}</p>
-            
-            <!-- Barra de progreso circular -->
-            <div style="position: relative; width: 160px; height: 160px; margin: 0 auto 20px;">
-                <svg style="transform: rotate(-90deg);" width="160" height="160">
-                    <circle cx="80" cy="80" r="70" fill="none" stroke="#e0e0e0" stroke-width="10"/>
-                    <circle id="progressCircle_${downloadId}" cx="80" cy="80" r="70" fill="none" 
-                            stroke="url(#gradient)" stroke-width="10" 
-                            stroke-dasharray="439.82" stroke-dashoffset="439.82"
-                            style="transition: stroke-dashoffset 0.3s ease;"/>
-                </svg>
-                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
-                    <div id="progressPercent_${downloadId}" style="font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg, #8C93F1, #d26cec); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">0%</div>
-                    <div id="progressStatus_${downloadId}" style="font-size: 0.8rem; color: #999; margin-top: 2px;">Iniciando...</div>
-                </div>
-            </div>
-            
-            <!-- Información adicional -->
-            <div style="background: #f8f9fa; border-radius: 12px; padding: 12px 15px; margin-bottom: 15px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                    <span style="color: #666; font-size: 0.8rem;">Descargado:</span>
-                    <span id="progressDownloaded_${downloadId}" style="color: #333; font-weight: 600; font-size: 0.8rem;">0 MB</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                    <span style="color: #666; font-size: 0.8rem;">Total:</span>
-                    <span id="progressTotal_${downloadId}" style="color: #333; font-weight: 600; font-size: 0.8rem;">-- MB</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color: #666; font-size: 0.8rem;">Velocidad:</span>
-                    <span id="progressSpeed_${downloadId}" style="color: #333; font-weight: 600; font-size: 0.8rem;">-- KB/s</span>
-                </div>
-            </div>
-            
-            <button id="cancelBtn_${downloadId}" style="
-                width: 100%;
-                padding: 12px;
-                background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
-                color: white;
-                border: none;
-                border-radius: 12px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                font-size: 0.95rem;
-            " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                Cancelar
-            </button>
         </div>
     `;
     
-    progressOverlay.appendChild(progressContainer);
-    document.body.appendChild(progressOverlay);
+    document.body.appendChild(notificacion);
     
-    // Botón cancelar
-    document.getElementById('cancelBtn_' + downloadId).addEventListener('click', () => {
-        cerrarModalProgreso(downloadId, targetButton);
-    });
+    // Remover después de 4 segundos
+    setTimeout(() => {
+        notificacion.remove();
+    }, 4000);
 }
 
-// ============================================
-// 📡 MONITOREAR PROGRESO
-// ============================================
+async function descargarCancion(videoId, title) {
+    try {
+        console.log('🔗 Preparando descarga:', videoId);
 
-async function monitorearProgreso(downloadId, videoId, targetButton) {
-    const maxIntentos = 300; // 5 minutos máximo
-    let intentos = 0;
-    let ultimoPorcentaje = 0;
-    let sinCambios = 0;
-    
-    const interval = setInterval(async () => {
-        intentos++;
-        
-        if (intentos > maxIntentos) {
-            clearInterval(interval);
-            mostrarError(downloadId, 'Tiempo de espera agotado');
-            return;
-        }
-        
+        // Construir URL de YouTube
+        const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+        // Copiar URL al portapapeles
         try {
-            const response = await fetch(`download.php?action=progress&downloadId=${downloadId}`);
-            const data = await response.json();
+            await navigator.clipboard.writeText(youtubeUrl);
+            console.log('✅ URL copiada al portapapeles');
             
-            if (data.error) {
-                clearInterval(interval);
-                mostrarError(downloadId, data.error);
-                return;
-            }
-            
-            // Actualizar UI
-            actualizarProgreso(downloadId, data);
-            
-            // Detectar si el progreso se estancó
-            if (data.percent === ultimoPorcentaje && data.percent > 0) {
-                sinCambios++;
-            } else {
-                sinCambios = 0;
-                ultimoPorcentaje = data.percent;
-            }
-            
-            // Si completó
-            if (data.status === 'complete' || data.percent >= 100) {
-                clearInterval(interval);
-                
-                // Asegurar que muestre 100%
-                actualizarProgreso(downloadId, {
-                    percent: 100,
-                    status: 'complete',
-                    downloaded: 'Completado',
-                    total: 'Completado',
-                    speed: 'Completado'
-                });
-                
-                // Mostrar éxito
-                setTimeout(() => {
-                    mostrarExito(downloadId);
-                    
-                    // DESCARGAR el archivo al navegador
-                    setTimeout(() => {
-                        const downloadLink = document.createElement('a');
-                        downloadLink.href = `download.php?action=getfile&videoId=${videoId}`;
-                        downloadLink.download = videoId + '.m4a';
-                        downloadLink.style.display = 'none';
-                        document.body.appendChild(downloadLink);
-                        downloadLink.click();
-                        
-                        // Limpiar después de 1 segundo
-                        setTimeout(() => {
-                            downloadLink.remove();
-                            cerrarModalProgreso(downloadId, targetButton);
-                        }, 1000);
-                    }, 1500);
-                }, 300);
-            }
-            
-            // Si hubo error
-            if (data.status === 'error') {
-                clearInterval(interval);
-                mostrarError(downloadId, data.error || 'Error desconocido');
-            }
-            
-        } catch (error) {
-            console.error('Error al obtener progreso:', error);
+            // Mostrar notificación de éxito
+            mostrarNotificacion('✅ Enlace copiado', 'Pega el enlace en Y2Mate (Ctrl+V)', 'success');
+        } catch (clipboardError) {
+            console.error('⚠️ No se pudo copiar al portapapeles:', clipboardError);
+            mostrarNotificacion('⚠️ Copia manualmente', youtubeUrl, 'warning');
         }
-    }, 1000); // Actualizar cada segundo
-}
 
-// ============================================
-// 🎨 ACTUALIZAR UI DE PROGRESO
-// ============================================
+        // Abrir Y2Mate en nueva pestaña
+        setTimeout(() => {
+            window.open('https://v1.y2mate.nu/es/', '_blank');
+            console.log('✅ Y2Mate abierto');
+        }, 500);
 
-function actualizarProgreso(downloadId, data) {
-    const percent = data.percent || 0;
-    const circumference = 439.82; // 2 * PI * 70
-    const offset = circumference - (percent / 100) * circumference;
-    
-    // Actualizar círculo
-    const circle = document.getElementById('progressCircle_' + downloadId);
-    if (circle) {
-        circle.style.strokeDashoffset = offset;
-    }
-    
-    // Actualizar porcentaje
-    const percentEl = document.getElementById('progressPercent_' + downloadId);
-    if (percentEl) {
-        percentEl.textContent = Math.round(percent) + '%';
-    }
-    
-    // Actualizar estado
-    const statusEl = document.getElementById('progressStatus_' + downloadId);
-    if (statusEl) {
-        const statusText = {
-            'starting': 'Iniciando...',
-            'downloading': 'Descargando...',
-            'complete': '¡Completado!',
-            'error': 'Error'
-        };
-        statusEl.textContent = statusText[data.status] || 'Procesando...';
-    }
-    
-    // Actualizar información
-    const downloadedEl = document.getElementById('progressDownloaded_' + downloadId);
-    if (downloadedEl) {
-        downloadedEl.textContent = data.downloaded || '0 MB';
-    }
-    
-    const totalEl = document.getElementById('progressTotal_' + downloadId);
-    if (totalEl) {
-        totalEl.textContent = data.total || '-- MB';
-    }
-    
-    const speedEl = document.getElementById('progressSpeed_' + downloadId);
-    if (speedEl) {
-        speedEl.textContent = data.speed || '-- KB/s';
+    } catch (error) {
+        console.error('❌ Error al redirigir:', error);
+        alert('❌ Error al abrir Y2Mate: ' + error.message);
     }
 }
 
-// ============================================
-// ✅ MOSTRAR ÉXITO
-// ============================================
 
-function mostrarExito(downloadId) {
-    const overlay = document.getElementById('progressOverlay_' + downloadId);
-    if (overlay) {
-        overlay.querySelector('div > div').innerHTML = `
-            <div style="text-align: center; padding: 20px 0;">
-                <div style="margin-bottom: 20px;">
-                    <svg style="width: 100px; height: 100px; margin: 0 auto;" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" style="animation: scaleIn 0.3s ease;"></circle>
-                        <path d="M9 12l2 2 4-4" style="animation: checkmark 0.5s ease 0.2s both;"></path>
-                    </svg>
-                </div>
-                <h2 style="margin: 0 0 10px 0; font-size: 1.8rem; color: #10b981; animation: fadeIn 0.5s ease;">¡Descarga Completa!</h2>
-                <p style="margin: 0 0 5px 0; color: #666; font-size: 1rem; animation: fadeIn 0.5s ease 0.1s both;">Tu música está lista</p>
-                <p style="margin: 0; color: #999; font-size: 0.85rem; animation: fadeIn 0.5s ease 0.2s both;">Revisa tu carpeta de descargas</p>
-            </div>
-        `;
-        
-        // Añadir animaciones CSS
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes scaleIn {
-                from { transform: scale(0); opacity: 0; }
-                to { transform: scale(1); opacity: 1; }
-            }
-            @keyframes checkmark {
-                from { stroke-dasharray: 0, 100; }
-                to { stroke-dasharray: 100, 100; }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-}
 
-// ============================================
-// ❌ MOSTRAR ERROR
-// ============================================
-
-function mostrarError(downloadId, mensaje) {
-    const overlay = document.getElementById('progressOverlay_' + downloadId);
-    if (overlay) {
-        overlay.querySelector('div > div').innerHTML = `
-            <div style="text-align: center; padding: 20px 0;">
-                <svg style="width: 80px; height: 80px; margin: 0 auto 15px;" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="15" y1="9" x2="9" y2="15"></line>
-                    <line x1="9" y1="9" x2="15" y2="15"></line>
-                </svg>
-                <h2 style="margin: 0 0 8px 0; font-size: 1.6rem; color: #ef4444;">Error en Descarga</h2>
-                <p style="margin: 0 0 20px 0; color: #666; font-size: 0.9rem;">${mensaje}</p>
-                <button onclick="cerrarModalProgreso('${downloadId}')" style="
-                    padding: 12px 30px;
-                    background: linear-gradient(135deg, #8C93F1, #d26cec);
-                    color: white;
-                    border: none;
-                    border-radius: 10px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    font-size: 0.95rem;
-                ">Cerrar</button>
-            </div>
-        `;
-    }
-}
-
-// ============================================
-// 🚪 CERRAR MODAL
-// ============================================
-
-function cerrarModalProgreso(downloadId, targetButton) {
-    const overlay = document.getElementById('progressOverlay_' + downloadId);
-    if (overlay) {
-        overlay.style.animation = 'fadeOut 0.3s ease';
-        setTimeout(() => overlay.remove(), 300);
-    }
-    
-    // Restaurar botón
-    if (targetButton) {
-        targetButton.disabled = false;
-    }
-}
-
-// ============================================
-// 🛠️ UTILIDADES
-// ============================================
-
-function sanitizarNombre(nombre) {
-    return nombre
-        .replace(/[^a-zA-Z0-9\s\-_]/g, '')
-        .replace(/\s+/g, '_')
-        .substring(0, 100);
-}
-
-function extraerVideoId(texto) {
-    const patrones = [
-        /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-        /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-        /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-        /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
-        /^([a-zA-Z0-9_-]{11})$/
-    ];
-    
-    for (const patron of patrones) {
-        const match = texto.match(patron);
-        if (match) return match[1];
-    }
-    return null;
-}
 
 // ============================================
 // 🎯 MANEJADOR PRINCIPAL
@@ -634,6 +301,26 @@ style.textContent = `
         to { transform: rotate(360deg); }
     }
     
+    @keyframes slideInRight {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+        }
+        to {
+            opacity: 0;
+        }
+    }
+    
     .spin {
         animation: spin 1s linear infinite;
     }
@@ -644,8 +331,8 @@ document.head.appendChild(style);
 // ✅ INICIALIZACIÓN
 // ============================================
 
-console.log('🎵 Sistema de descarga de música cargado');
+console.log('🎵 Sistema de búsqueda de música cargado');
 console.log('⚙️ Configuración:');
 console.log('  - API Key: 🔐 Cargada de forma segura desde .env');
-console.log('  - Backend:', CONFIG.BACKEND_URL);
+console.log('  - Descarga: Redirige a Y2Mate');
 console.log('💡 Listo para usar!');
