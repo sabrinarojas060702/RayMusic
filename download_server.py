@@ -111,6 +111,20 @@ def download_video(video_url, output_file, progress_file, download_id):
             'progress_hooks': [lambda d: progress_hook(d, progress_file)],
             'quiet': False,
             'no_warnings': False,
+            # Opciones para evitar bloqueos de YouTube
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'web'],
+                    'player_skip': ['webpage', 'configs']
+                }
+            },
+            # Headers para parecer un navegador real
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-us,en;q=0.5',
+                'Sec-Fetch-Mode': 'navigate',
+            }
         }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -138,8 +152,12 @@ def download_video(video_url, output_file, progress_file, download_id):
             active_downloads[download_id] = 'error'
             
     except Exception as e:
-        error_msg = str(e)[:50]
-        update_progress(progress_file, 0, 'error', '0MB', '0MB', f'Error: {error_msg}')
+        error_msg = str(e)
+        # Detectar error de bot
+        if 'Sign in to confirm' in error_msg or 'bot' in error_msg.lower():
+            update_progress(progress_file, 0, 'error', '0MB', '0MB', 'YouTube bloqueó la descarga')
+        else:
+            update_progress(progress_file, 0, 'error', '0MB', '0MB', f'Error: {error_msg[:50]}')
         active_downloads[download_id] = 'error'
         print(f"ERROR en descarga: {e}")
 

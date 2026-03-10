@@ -3,6 +3,8 @@ FROM python:3.11-slim
 # Instalamos dependencias del sistema
 RUN apt-get update && apt-get install -y \
     ffmpeg \
+    nodejs \
+    npm \
     && rm -rf /var/lib/apt/lists/*
 
 # Crear directorio de trabajo
