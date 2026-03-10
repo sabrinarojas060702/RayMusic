@@ -1,26 +1,24 @@
 <?php
 /**
- * 📥 BACKEND DE DESCARGA CON PROGRESO
- * Optimizado para Render con carpeta del sistema /tmp
+ * 📥 BACKEND DE DESCARGA - VERSIÓN SIMPLIFICADA
  */
 
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
-set_time_limit(0); // Sin límite de tiempo
-ignore_user_abort(true); // Continuar aunque el usuario cierre la conexión
+set_time_limit(0);
+ignore_user_abort(true);
 
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST');
 header('Access-Control-Allow-Headers: Content-Type');
 
-// Usar carpeta del sistema /tmp (garantizada en Render/Linux)
-$tempDir = '/tmp';
-if (!file_exists($tempDir)) {
-    mkdir($tempDir, 0755, true);
-}
+$isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+$tempDir = $isWindows ? sys_get_temp_dir() : '/tmp';
 
-// Endpoint para obtener progreso
+// ==========================================
+// ENDPOINT: Consultar progreso
+// ==========================================
 if (isset($_GET['action']) && $_GET['action'] === 'progress') {
     header('Content-Type: application/json');
     header('Cache-Control: no-cache, no-store, must-revalidate');
@@ -29,21 +27,18 @@ if (isset($_GET['action']) && $_GET['action'] === 'progress') {
     
     $downloadId = $_GET['downloadId'] ?? null;
     if (!$downloadId) {
-        echo json_encode(['error' => 'No download ID']);
+        echo json_encode(['percent' => 0, 'status' => 'starting']);
         exit;
     }
     
-    // Define la ruta absoluta sin puntos
-    $tmpPath = '/tmp/';
-    $progressFile = $tmpPath . 'progress_' . $downloadId . '.txt';
+    $progressFile = $tempDir . DIRECTORY_SEPARATOR . 'progress_' . $downloadId . '.txt';
     
-    // Limpiar caché de archivos
     clearstatcache(true, $progressFile);
     
     if (file_exists($progressFile)) {
         $content = @file_get_contents($progressFile);
         if ($content !== false && !empty($content)) {
-            echo $content; // Ya está en formato JSON
+            echo $content;
         } else {
             echo json_encode(['percent' => 0, 'status' => 'starting']);
         }
@@ -53,7 +48,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'progress') {
     exit;
 }
 
-// Endpoint para SERVIR el archivo descargado
+// ==========================================
+// ENDPOINT: Servir archivo descargado
+// ==========================================
 if (isset($_GET['action']) && $_GET['action'] === 'getfile') {
     $videoId = $_GET['videoId'] ?? null;
     if (!$videoId) {
@@ -61,16 +58,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'getfile') {
         die('Error: No video ID');
     }
     
-    // Define la ruta absoluta sin puntos
-    $tmpPath = '/tmp/';
-    $outputFile = $tmpPath . $videoId . '.m4a';
+    $outputFile = $tempDir . DIRECTORY_SEPARATOR . $videoId . '.m4a';
     
     if (!file_exists($outputFile)) {
         http_response_code(404);
         die('Error: Archivo no encontrado');
     }
     
-    // Limpiar cualquier output previo
     if (ob_get_level()) {
         ob_end_clean();
     }
@@ -78,7 +72,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'getfile') {
     clearstatcache(true, $outputFile);
     $fileSize = filesize($outputFile);
     
-    // Enviar headers
     header('Content-Type: audio/mp4');
     header('Content-Disposition: attachment; filename="' . $videoId . '.m4a"');
     header('Content-Length: ' . $fileSize);
@@ -86,30 +79,22 @@ if (isset($_GET['action']) && $_GET['action'] === 'getfile') {
     header('Pragma: public');
     header('Expires: 0');
     
-    // Leer y enviar el archivo
-    $handle = fopen($outputFile, 'rb');
-    if ($handle) {
-        while (!feof($handle)) {
-            echo fread($handle, 8192);
-            flush();
-        }
-        fclose($handle);
-    }
+    readfile($outputFile);
     
-    // Limpiar archivos después de enviarlo
     @unlink($outputFile);
     
-    // Limpiar también el archivo de progreso si existe
     $downloadId = $_GET['downloadId'] ?? null;
     if ($downloadId) {
-        $progressFile = $tmpPath . 'progress_' . $downloadId . '.txt';
+        $progressFile = $tempDir . DIRECTORY_SEPARATOR . 'progress_' . $downloadId . '.txt';
         @unlink($progressFile);
     }
     
     exit;
 }
 
-// Endpoint principal - INICIAR descarga
+// ==========================================
+// ENDPOINT: Iniciar descarga
+// ==========================================
 if (!isset($_GET['videoId'])) {
     http_response_code(400);
     die('Error: No video ID');
@@ -119,13 +104,11 @@ $videoId = $_GET['videoId'];
 $downloadId = $_GET['downloadId'] ?? uniqid();
 $videoUrl = "https://www.youtube.com/watch?v=" . $videoId;
 
-// Define la ruta absoluta sin puntos
-$tmpPath = '/tmp/';
-$progressFile = $tmpPath . 'progress_' . $downloadId . '.txt';
-$outputFile = $tmpPath . $videoId . '.m4a';
-$logFile = $tmpPath . 'ytdlp_' . $downloadId . '.log';
+$progressFile = $tempDir . DIRECTORY_SEPARATOR . 'progress_' . $downloadId . '.txt';
+$outputFile = $tempDir . DIRECTORY_SEPARATOR . $videoId . '.m4a';
+$logFile = $tempDir . DIRECTORY_SEPARATOR . 'ytdlp_' . $downloadId . '.log';
 
-// Función para actualizar progreso - FORZAR escritura inmediata
+// Función para actualizar progreso
 function updateProgress($file, $percent, $status, $downloaded = '0MB', $total = '0MB', $speed = '0KB/s') {
     $data = json_encode([
         'percent' => $percent,
@@ -134,114 +117,96 @@ function updateProgress($file, $percent, $status, $downloaded = '0MB', $total = 
         'total' => $total,
         'speed' => $speed
     ]);
-    
-    // Escribir con LOCK_EX para evitar lecturas parciales
     @file_put_contents($file, $data, LOCK_EX);
-    
-    // Forzar flush al disco
-    if (function_exists('opcache_invalidate')) {
-        @opcache_invalidate($file, true);
-    }
     clearstatcache(true, $file);
 }
 
 // Inicializar progreso
-updateProgress($progressFile, 0, 'starting');
-
-// Comando yt-dlp optimizado para M4A con progreso en tiempo real
-$cmd = 'yt-dlp -f "140/bestaudio[ext=m4a]" ' .
-       '--newline ' .
-       '--progress ' .
-       '-o ' . escapeshellarg($outputFile) . ' ' .
-       escapeshellarg($videoUrl) . ' > ' . escapeshellarg($logFile) . ' 2>&1';
-
-// Ejecutar en segundo plano
-if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-    // Windows
-    pclose(popen('start /B ' . $cmd, 'r'));
-} else {
-    // Linux/Mac/Render
-    exec($cmd . ' > /dev/null 2>&1 &');
-}
-
-// Actualizar progreso inicial
 updateProgress($progressFile, 5, 'downloading', '0MB', 'Calculando...', 'Iniciando...');
 
-// Monitorear descarga en segundo plano
-$startTime = time();
-$maxWait = 300; // 5 minutos máximo
-$lastPercent = 0;
+// Comando yt-dlp con progreso
+$cmd = 'yt-dlp -f "140/bestaudio[ext=m4a]" --newline -o ' . 
+       escapeshellarg($outputFile) . ' ' . 
+       escapeshellarg($videoUrl) . ' 2>&1';
 
-while (true) {
-    $elapsed = time() - $startTime;
+// Ejecutar comando y capturar salida en tiempo real
+if ($isWindows) {
+    $process = popen($cmd, 'r');
+} else {
+    $process = popen($cmd, 'r');
+}
+
+if (!$process) {
+    updateProgress($progressFile, 0, 'error', '0MB', '0MB', 'Error al iniciar');
+    http_response_code(500);
+    echo json_encode(['error' => 'No se pudo iniciar la descarga']);
+    exit;
+}
+
+$lastPercent = 5;
+$startTime = time();
+$maxWait = 300;
+
+// Leer salida línea por línea
+while (!feof($process)) {
+    $line = fgets($process);
     
-    if ($elapsed > $maxWait) {
-        updateProgress($progressFile, 0, 'error', '0MB', '0MB', '0KB/s');
+    if ($line === false) {
+        break;
+    }
+    
+    // Timeout
+    if ((time() - $startTime) > $maxWait) {
+        pclose($process);
+        updateProgress($progressFile, 0, 'error', '0MB', '0MB', 'Timeout');
         @unlink($progressFile);
-        @unlink($logFile);
+        @unlink($outputFile);
         http_response_code(500);
         echo json_encode(['error' => 'Timeout']);
         exit;
     }
     
-    // Leer log para obtener progreso real
-    if (file_exists($logFile)) {
-        clearstatcache(true, $logFile);
-        $log = @file_get_contents($logFile);
+    // Buscar líneas de progreso
+    if (preg_match('/\[download\]\s+(\d+\.?\d*)%\s+of\s+([\d\.]+[KMG]?i?B)(?:\s+at\s+([\d\.]+[KMG]?i?B\/s))?/', $line, $matches)) {
+        $percent = floatval($matches[1]);
+        $total = $matches[2] ?? 'Calculando...';
+        $speed = $matches[3] ?? 'Calculando...';
         
-        if ($log !== false && !empty($log)) {
-            // Buscar última línea de progreso
-            if (preg_match_all('/\[download\]\s+(\d+\.?\d*)%\s+of\s+([\d\.]+[KMG]?i?B)(?:\s+at\s+([\d\.]+[KMG]?i?B\/s))?/m', $log, $matches, PREG_SET_ORDER)) {
-                $lastMatch = end($matches);
-                $percent = floatval($lastMatch[1]);
-                $total = $lastMatch[2] ?? 'Calculando...';
-                $speed = $lastMatch[3] ?? 'Calculando...';
-                
-                // Solo actualizar si cambió el porcentaje
-                if (abs($percent - $lastPercent) >= 0.5) {
-                    $downloaded = round($percent, 1) . '%';
-                    updateProgress($progressFile, $percent, 'downloading', $downloaded, $total, $speed);
-                    $lastPercent = $percent;
-                }
-            }
+        if (abs($percent - $lastPercent) >= 1) {
+            updateProgress($progressFile, $percent, 'downloading', round($percent, 1) . '%', $total, $speed);
+            $lastPercent = $percent;
         }
     }
+}
+
+pclose($process);
+
+// Verificar si el archivo existe y está completo
+if (file_exists($outputFile)) {
+    clearstatcache(true, $outputFile);
+    $fileSize = @filesize($outputFile);
     
-    // Verificar si terminó
-    if (file_exists($outputFile)) {
-        clearstatcache(true, $outputFile);
-        $fileSize = @filesize($outputFile);
+    if ($fileSize && $fileSize > 10000) {
+        $fileSizeMB = round($fileSize / 1024 / 1024, 2) . 'MB';
+        updateProgress($progressFile, 100, 'complete', $fileSizeMB, $fileSizeMB, 'Completado');
         
-        if ($fileSize && $fileSize > 1000) {
-            // Verificar que el archivo no está creciendo (descarga completa)
-            $size1 = $fileSize;
-            sleep(1);
-            clearstatcache(true, $outputFile);
-            $size2 = @filesize($outputFile);
-            
-            if ($size1 === $size2) {
-                // Descarga completa
-                $fileSizeMB = round($fileSize / 1024 / 1024, 2) . 'MB';
-                
-                updateProgress($progressFile, 100, 'complete', $fileSizeMB, $fileSizeMB, 'Completado');
-                
-                // Limpiar log
-                @unlink($logFile);
-                
-                // Retornar éxito
-                header('Content-Type: application/json');
-                echo json_encode([
-                    'success' => true,
-                    'videoId' => $videoId,
-                    'message' => 'Descarga completa'
-                ]);
-                exit;
-            }
-        }
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'videoId' => $videoId,
+            'downloadId' => $downloadId,
+            'message' => 'Descarga completa'
+        ]);
+    } else {
+        updateProgress($progressFile, 0, 'error', '0MB', '0MB', 'Archivo incompleto');
+        @unlink($outputFile);
+        http_response_code(500);
+        echo json_encode(['error' => 'Archivo incompleto']);
     }
-    
-    // Esperar antes de verificar de nuevo - reducido para más actualizaciones
-    usleep(300000); // 0.3 segundos
+} else {
+    updateProgress($progressFile, 0, 'error', '0MB', '0MB', 'Error en descarga');
+    http_response_code(500);
+    echo json_encode(['error' => 'Error en descarga']);
 }
 
 exit;
