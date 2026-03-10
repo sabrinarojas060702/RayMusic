@@ -105,27 +105,36 @@ def download_video(video_url, output_file, progress_file, download_id):
         # Inicializar progreso
         update_progress(progress_file, 5, 'downloading', '0MB', 'Calculando...', 'Iniciando...')
         
+        # Buscar archivo de cookies
+        cookies_file = os.path.join(TEMP_DIR, 'youtube_cookies.txt')
+        
         ydl_opts = {
-            'format': '140/bestaudio[ext=m4a]',
+            'format': '140/bestaudio[ext=m4a]/bestaudio/best',
             'outtmpl': output_file,
             'progress_hooks': [lambda d: progress_hook(d, progress_file)],
             'quiet': False,
             'no_warnings': False,
-            # Opciones para evitar bloqueos de YouTube
+            # Opciones agresivas para evitar bloqueos
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['android', 'web'],
-                    'player_skip': ['webpage', 'configs']
+                    'player_client': ['ios', 'android'],
+                    'player_skip': ['webpage', 'configs', 'js'],
                 }
             },
-            # Headers para parecer un navegador real
+            # Headers más completos
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-us,en;q=0.5',
-                'Sec-Fetch-Mode': 'navigate',
-            }
+                'User-Agent': 'com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
+                'Accept': '*/*',
+                'Accept-Language': 'en-US,en;q=0.9',
+            },
+            'extractor_retries': 3,
+            'fragment_retries': 10,
         }
+        
+        # Usar cookies si existen
+        if os.path.exists(cookies_file):
+            ydl_opts['cookiefile'] = cookies_file
+            print(f"Usando cookies de: {cookies_file}")
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([video_url])
@@ -155,9 +164,9 @@ def download_video(video_url, output_file, progress_file, download_id):
         error_msg = str(e)
         # Detectar error de bot
         if 'Sign in to confirm' in error_msg or 'bot' in error_msg.lower():
-            update_progress(progress_file, 0, 'error', '0MB', '0MB', 'YouTube bloqueó la descarga')
+            update_progress(progress_file, 0, 'error', '0MB', '0MB', 'Sube cookies de YouTube')
         else:
-            update_progress(progress_file, 0, 'error', '0MB', '0MB', f'Error: {error_msg[:50]}')
+            update_progress(progress_file, 0, 'error', '0MB', '0MB', f'Error: {error_msg[:40]}')
         active_downloads[download_id] = 'error'
         print(f"ERROR en descarga: {e}")
 
@@ -248,6 +257,30 @@ def download():
             'downloadId': download_id,
             'message': 'Descarga iniciada'
         })
+
+@app.route('/upload_cookies', methods=['POST'])
+def upload_cookies():
+    """Endpoint para subir cookies de YouTube"""
+    try:
+        if 'cookies' not in request.files:
+            return jsonify({'error': 'No se envió archivo de cookies'}), 400
+        
+        file = request.files['cookies']
+        
+        if file.filename == '':
+            return jsonify({'error': 'Archivo vacío'}), 400
+        
+        # Guardar cookies
+        cookies_path = os.path.join(TEMP_DIR, 'youtube_cookies.txt')
+        file.save(cookies_path)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Cookies subidas correctamente'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api.php', methods=['GET'])
 def api():
