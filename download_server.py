@@ -109,34 +109,29 @@ def download_video(video_url, output_file, progress_file, download_id):
         cookies_file = os.path.join(TEMP_DIR, 'youtube_cookies.txt')
         
         ydl_opts = {
-            'format': '140/bestaudio[ext=m4a]/bestaudio/best',
+            'format': 'bestaudio/best',  # Formato más flexible
             'outtmpl': output_file,
             'progress_hooks': [lambda d: progress_hook(d, progress_file)],
             'quiet': False,
             'no_warnings': False,
             'extractor_retries': 3,
             'fragment_retries': 10,
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'm4a',
+            }],
         }
         
         # Si hay cookies, usar cliente web (soporta cookies)
         if os.path.exists(cookies_file):
             ydl_opts['cookiefile'] = cookies_file
-            ydl_opts['extractor_args'] = {
-                'youtube': {
-                    'player_client': ['web'],
-                }
-            }
             print(f"Usando cookies de: {cookies_file}")
         else:
             # Sin cookies, usar iOS/Android
             ydl_opts['extractor_args'] = {
                 'youtube': {
-                    'player_client': ['ios', 'android'],
-                    'player_skip': ['webpage', 'configs', 'js'],
+                    'player_client': ['ios'],
                 }
-            }
-            ydl_opts['http_headers'] = {
-                'User-Agent': 'com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
             }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
