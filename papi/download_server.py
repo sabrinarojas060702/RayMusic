@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Servidor de descarga de YouTube con Flask
-Reemplaza completamente la lógica PHP
+
 """
 
 from flask import Flask, request, jsonify, send_file

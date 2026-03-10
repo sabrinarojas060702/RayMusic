@@ -5,17 +5,19 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalamos dependencias de Python
-COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
-
 # Crear directorio de trabajo
 WORKDIR /app
 
-# Copiar archivos de la aplicación
+# Copiar requirements.txt primero (para cache de Docker)
+COPY requirements.txt .
+
+# Instalar dependencias de Python
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Copiar todos los archivos de la aplicación
 COPY . /app/
 
-# Crear carpeta temporal
+# Crear carpeta temporal con permisos
 RUN mkdir -p /tmp && chmod 777 /tmp
 
 # Dar permisos de ejecución al servidor
