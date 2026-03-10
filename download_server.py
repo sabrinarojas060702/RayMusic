@@ -114,27 +114,30 @@ def download_video(video_url, output_file, progress_file, download_id):
             'progress_hooks': [lambda d: progress_hook(d, progress_file)],
             'quiet': False,
             'no_warnings': False,
-            # Opciones agresivas para evitar bloqueos
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['ios', 'android'],
-                    'player_skip': ['webpage', 'configs', 'js'],
-                }
-            },
-            # Headers más completos
-            'http_headers': {
-                'User-Agent': 'com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
-                'Accept': '*/*',
-                'Accept-Language': 'en-US,en;q=0.9',
-            },
             'extractor_retries': 3,
             'fragment_retries': 10,
         }
         
-        # Usar cookies si existen
+        # Si hay cookies, usar cliente web (soporta cookies)
         if os.path.exists(cookies_file):
             ydl_opts['cookiefile'] = cookies_file
+            ydl_opts['extractor_args'] = {
+                'youtube': {
+                    'player_client': ['web'],
+                }
+            }
             print(f"Usando cookies de: {cookies_file}")
+        else:
+            # Sin cookies, usar iOS/Android
+            ydl_opts['extractor_args'] = {
+                'youtube': {
+                    'player_client': ['ios', 'android'],
+                    'player_skip': ['webpage', 'configs', 'js'],
+                }
+            }
+            ydl_opts['http_headers'] = {
+                'User-Agent': 'com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
+            }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([video_url])
@@ -165,6 +168,8 @@ def download_video(video_url, output_file, progress_file, download_id):
         # Detectar error de bot
         if 'Sign in to confirm' in error_msg or 'bot' in error_msg.lower():
             update_progress(progress_file, 0, 'error', '0MB', '0MB', 'Sube cookies de YouTube')
+        elif 'Failed to extract' in error_msg:
+            update_progress(progress_file, 0, 'error', '0MB', '0MB', 'Error de extracción')
         else:
             update_progress(progress_file, 0, 'error', '0MB', '0MB', f'Error: {error_msg[:40]}')
         active_downloads[download_id] = 'error'
