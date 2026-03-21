@@ -256,9 +256,6 @@ document.head.appendChild(style);
 // ✅ INICIALIZACIÓN
 // ============================================
 
-renderizarHistorial();
-setInterval(renderizarHistorial, 60000);
-
 
 // ============================================
 // 🔗 INTEGRACIÓN CON Y2MATE
